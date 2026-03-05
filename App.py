@@ -95,7 +95,7 @@ st.markdown(
             margin-bottom: 10px;
         }}
         .right-logos {{
-            justify-content: center;
+            display: none; /* Hide logo 1 and logo 2 on phones */
         }}
         .footer-container {{
             flex-direction: column;
