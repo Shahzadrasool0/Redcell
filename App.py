@@ -122,166 +122,164 @@ st.markdown(
 )
 
 
-st.markdown(
-    "<h1 style='font-size:24px;'>Upload Reports</h1>",
-    unsafe_allow_html=True
-)
+st.markdown("<br>", unsafe_allow_html=True) # Add some spacing
 
+# --- Create Tabs for Cleaner UI ---
+tab1, tab2 = st.tabs(["Excel to CSV Converter", "Word Report Extractor"])
 
-# Upload Excel file
-uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx", "xls"], key="excel_upload")
+with tab1:
+    st.markdown("<h2 style='font-size:20px;'>Upload Excel Reports</h2>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Upload an Excel file", type=["xlsx", "xls"], key="excel_upload")
 
-st.set_page_config(page_title="Excel to CSV Converter", layout="wide")
+    # Font size for table
+    font_size = 14
+    st.markdown(
+        f"""
+        <style>
+        .dataframe-wrapper tbody td {{
+            font-size: {font_size}px !important;
+        }}
+        .dataframe-wrapper thead th {{
+            font-size: {font_size + 2}px !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
+    # Process file on button click
+    if uploaded_file is not None:
+        if st.button("Convert to CSV", type="primary"):
+            try:
+                # Read Excel file
+                df = pd.read_excel(uploaded_file)
+                st.success("✅ File converted successfully!")
+                
+                # Use an expander to optionally hide the large dataframe
+                with st.expander("Preview Data", expanded=True):
+                    st.dataframe(df, use_container_width=True)
+                
+                df = pd.read_excel(uploaded_file)
+                df = df.astype(str)  # Prevent ArrowTypeError
 
+                # Convert to CSV in memory
+                csv_buffer = io.StringIO()
+                df.to_csv(csv_buffer, index=False)
+                csv_bytes = csv_buffer.getvalue().encode()
+                b64 = base64.b64encode(csv_bytes).decode()
+                file_name = uploaded_file.name.rsplit('.', 1)[0] + '.csv'
+                
+                # Styled download button
+                st.markdown(f'<a href="data:file/csv;base64,{b64}" download="{file_name}" class="download-btn" style="display: inline-block; padding: 10px 20px; background-color: #ff4b4b; color: white; border-radius: 5px; text-decoration: none; font-weight: bold; margin-bottom: 20px;">📥 Download Converted CSV</a>', unsafe_allow_html=True)
+                
+                st.divider()
+                st.markdown("### 📈 Data Visualizations")
 
-# Font size for table
-font_size = 16
-st.markdown(
-    f"""
-    <style>
-    .dataframe-wrapper tbody td {{
-        font-size: {font_size}px !important;
-    }}
-    .dataframe-wrapper thead th {{
-        font-size: {font_size + 2}px !important;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+                # Put charts side-by-side using columns
+                col1, col2 = st.columns(2)
+                
+                # Plot Histogram (for numeric columns)
+                with col1:
+                    numeric_cols = df.select_dtypes(include='number').columns.tolist()
+                    if numeric_cols:
+                        st.markdown("**Histogram**")
+                        selected_hist_col = st.selectbox("Select a column", numeric_cols, key="hist_select")
+                        fig, ax = plt.subplots(figsize=(5,3))
+                        df[selected_hist_col].plot(kind='hist', bins=20, ax=ax, color='#ff4b4b', edgecolor='black', alpha=0.7)
+                        ax.set_title(f"Histogram of {selected_hist_col}")
+                        st.pyplot(fig)
+                    else:
+                        st.info("No numeric columns available.")
 
-# Process file on button click
-if uploaded_file is not None:
-    if st.button("Convert to CSV"):
-        try:
-            # Read Excel file
-            df = pd.read_excel(uploaded_file)
-            st.success("File converted successfully!")
-            st.dataframe(df, use_container_width=True)
-            df = pd.read_excel(uploaded_file)
-            df = df.astype(str)  # Prevent ArrowTypeError
+                # Plot Pie Chart (for categorical columns)
+                with col2:
+                    cat_cols = df.select_dtypes(include='object').columns.tolist()
+                    if cat_cols:
+                        st.markdown("**Pie Chart**")
+                        selected_pie_col = st.selectbox("Select a column", cat_cols, key="pie_select")
+                        pie_data = df[selected_pie_col].value_counts().head(10) # Limit to top 10 for cleaner chart
+                        fig2, ax2 = plt.subplots(figsize=(5,3))
+                        ax2.pie(pie_data, labels=pie_data.index, autopct='%1.1f%%', startangle=90, colors=plt.cm.Pastel1.colors)
+                        ax2.set_title(f"Top 10: {selected_pie_col}")
+                        ax2.axis('equal')
+                        st.pyplot(fig2)
+                    else:
+                        st.info("No categorical columns available.")
 
-            # Convert to CSV in memory
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            csv_bytes = csv_buffer.getvalue().encode()
-            b64 = base64.b64encode(csv_bytes).decode()
-            file_name = uploaded_file.name.rsplit('.', 1)[0] + '.csv'
-            download_link = f'<a href="data:file/csv;base64,{b64}" download="{file_name}">📥 Download Converted CSV</a>'
-            st.markdown(download_link, unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error during processing: {e}")
 
-            # Plot Histogram (for numeric columns)
-            numeric_cols = df.select_dtypes(include='number').columns.tolist()
-            if numeric_cols:
-                st.subheader("📊 Histogram")
-                selected_hist_col = st.selectbox("Select a column for histogram", numeric_cols)
-                fig, ax = plt.subplots()
-                df[selected_hist_col].plot(kind='hist', bins=20, ax=ax, color='skyblue', edgecolor='black')
-                ax.set_title(f"Histogram of {selected_hist_col}")
-                st.pyplot(fig)
-            else:
-                st.info("No numeric columns available for histogram.")
+with tab2:
+    st.markdown("<h2 style='font-size:20px;'>Extract Data from Word Reports</h2>", unsafe_allow_html=True)
+    uploaded_word = st.file_uploader("Upload a Word Report (.docx)", type=["doc","docx"], key="word_upload_2")
 
-            # Plot Pie Chart (for categorical columns)
-            cat_cols = df.select_dtypes(include='object').columns.tolist()
-            if cat_cols:
-                st.subheader("🥧 Pie Chart")
-                selected_pie_col = st.selectbox("Select a column for pie chart", cat_cols)
-                pie_data = df[selected_pie_col].value_counts()
-                fig2, ax2 = plt.subplots()
-                ax2.pie(pie_data, labels=pie_data.index, autopct='%1.1f%%', startangle=90)
-                ax2.set_title(f"Pie Chart of {selected_pie_col}")
-                ax2.axis('equal')
-                st.pyplot(fig2)
-            else:
-                st.info("No categorical columns available for pie chart.")
+    def extract_report_data(docx_file):
+        """Extract key values from lab report"""
+        doc = docx.Document(docx_file)
+        text = "\n".join([para.text for para in doc.paragraphs])
+        data = {}
 
-        except Exception as e:
-            st.error(f"Error during processing: {e}")
+        # Patient Info
+        name_match = re.search(r"Patient Name\s*:\s*(.+)", text)
+        age_match = re.search(r"Age\s*\|\s*Gender\s*:\s*([\d]+.*)", text)
+        date_match = re.search(r"Date\s*:\s*(.+)", text)
 
+        if name_match:
+            data["Patient Name"] = name_match.group(1).strip()
+        if age_match:
+            parts = age_match.group(1).split("|")
+            if len(parts) >= 2:
+                data["Age"] = parts[0].strip()
+                data["Gender"] = parts[1].strip()
+        if date_match:
+            data["Date"] = date_match.group(1).strip()
 
-st.markdown(
-    f"""
-    <div class="footer-container">
-        <img src="data:image/png;base64,{collab1_base64}">
-        <img src="data:image/png;base64,{collab2_base64}">
-        <img src="data:image/png;base64,{collab3_base64}">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+        # Lab Test Values
+        tests = {
+            "Hemoglobin": r"Hb: Haemoglobin.*?\n?([0-9.]+)",
+            "Hematocrit (PCV)": r"P\.C\.V.*?\n?([0-9.]+)",
+            "RBC": r"Red Blood Cells.*?\n?([0-9.]+)",
+            "MCV": r"M\.C\.V.*?\n?([0-9.]+)",
+            "MCH": r"M\.C\.H\s*\n?([0-9.]+)",
+            "MCHC": r"M\.C\.H\.C\s*\n?([0-9.]+)",
+            "WBC": r"Total WBC Count\s*\n?([0-9.]+)",
+            "Neutrophils": r"Neutrophils\s*\n?([0-9.]+)",
+            "Lymphocytes": r"Lymphocytes\s*\n?([0-9.]+)",
+            "Eosinophils": r"Eosinophils\s*\n?([0-9.]+)",
+            "Monocytes": r"Monocytes\s*\n?([0-9.]+)",
+            "Platelets": r"Platelets\s*\n?([0-9.]+)"
+        }
+        for test, pattern in tests.items():
+            match = re.search(pattern, text)
+            if match:
+                data[test] = match.group(1).strip()
 
+        return data
 
-st.markdown("<h1 style='font-size:24px;'>Extract Data from Word Reports</h1>", unsafe_allow_html=True)
+    if uploaded_word is not None:
+        if st.button("Extract Data from Word Report", type="primary"):
+            try:
+                with st.spinner("Analyzing document..."):
+                    extracted_data = extract_report_data(uploaded_word)
+                st.success("✅ Extracted Successfully!")
+                
+                # Display extracted data nicely in columns instead of raw JSON
+                if extracted_data:
+                    st.markdown("### Patient Information")
+                    info_col1, info_col2, info_col3 = st.columns(3)
+                    info_col1.metric("Patient Name", extracted_data.get("Patient Name", "N/A"))
+                    info_col2.metric("Age/Gender", f"{extracted_data.get('Age', 'N/A')} / {extracted_data.get('Gender', 'N/A')}")
+                    info_col3.metric("Date", extracted_data.get("Date", "N/A"))
+                    
+                    st.markdown("### Lab Results")
+                    # Create a dataframe for a much cleaner display than JSON
+                    results = {k: v for k, v in extracted_data.items() if k not in ["Patient Name", "Age", "Gender", "Date"]}
+                    if results:
+                        df_results = pd.DataFrame(list(results.items()), columns=["Test", "Value"])
+                        st.dataframe(df_results, use_container_width=True, hide_index=True)
+                else:
+                    st.warning("Could not find structured data using the current logic.")
+            except Exception as e:
+                st.error(f"Error extracting data: {e}")
 
-uploaded_word = st.file_uploader("Upload a Word Report (.docx)", type=["doc","docx"], key="word_upload")
-
-def extract_report_data(docx_file):
-    """Extract key values from lab report"""
-    doc = docx.Document(docx_file)
-    text = "\n".join([para.text for para in doc.paragraphs])
-    data = {}
-
-    # Patient Info
-    name_match = re.search(r"Patient Name\s*:\s*(.+)", text)
-    age_match = re.search(r"Age\s*\|\s*Gender\s*:\s*([\d]+.*)", text)
-    date_match = re.search(r"Date\s*:\s*(.+)", text)
-
-    if name_match:
-        data["Patient Name"] = name_match.group(1).strip()
-    if age_match:
-        parts = age_match.group(1).split("|")
-        if len(parts) >= 2:
-            data["Age"] = parts[0].strip()
-            data["Gender"] = parts[1].strip()
-    if date_match:
-        data["Date"] = date_match.group(1).strip()
-
-    # Lab Test Values
-    tests = {
-        "Hemoglobin": r"Hb: Haemoglobin.*?\n?([0-9.]+)",
-        "Hematocrit (PCV)": r"P\.C\.V.*?\n?([0-9.]+)",
-        "RBC": r"Red Blood Cells.*?\n?([0-9.]+)",
-        "MCV": r"M\.C\.V.*?\n?([0-9.]+)",
-        "MCH": r"M\.C\.H\s*\n?([0-9.]+)",
-        "MCHC": r"M\.C\.H\.C\s*\n?([0-9.]+)",
-        "WBC": r"Total WBC Count\s*\n?([0-9.]+)",
-        "Neutrophils": r"Neutrophils\s*\n?([0-9.]+)",
-        "Lymphocytes": r"Lymphocytes\s*\n?([0-9.]+)",
-        "Eosinophils": r"Eosinophils\s*\n?([0-9.]+)",
-        "Monocytes": r"Monocytes\s*\n?([0-9.]+)",
-        "Platelets": r"Platelets\s*\n?([0-9.]+)"
-    }
-    for test, pattern in tests.items():
-        match = re.search(pattern, text)
-        if match:
-            data[test] = match.group(1).strip()
-
-    return data
-
-
-if uploaded_word is not None:
-    if st.button("Extract Data from Word Report"):
-        try:
-            extracted_data = extract_report_data(uploaded_word)
-            st.success("✅ Data Extracted Successfully!")
-            st.json(extracted_data)  # shows all extracted info
-        except Exception as e:
-            st.error(f"Error extracting data: {e}")
-st.markdown("<h1 style='font-size:24px;'>Extract Data from Word Reports</h1>", unsafe_allow_html=True)
-
-uploaded_word = st.file_uploader("Upload a Word Report (.docx)", type=["doc","docx"])
-
-def extract_report_data(docx_file):
-    ...
-    return data
-
-if uploaded_word is not None:
-    if st.button("Extract Data from Word Report"):
-        try:
-            extracted_data = extract_report_data(uploaded_word)
-            st.success("✅ Data Extracted Successfully!")
-            st.json(extracted_data)
-        except Exception as e:
-            st.error(f"Error extracting data: {e}")
+# --- Footer ---
