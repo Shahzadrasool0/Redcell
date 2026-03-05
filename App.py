@@ -157,12 +157,15 @@ with tab1:
                 
                 # Use an expander to optionally hide the large dataframe
                 with st.expander("Preview Data", expanded=True):
-                    st.dataframe(df, use_container_width=True)
-                
-                df = pd.read_excel(uploaded_file)
-                df = df.astype(str)  # Prevent ArrowTypeError
+                    # Convert only overly complex object types to string to prevent Arrow serialization errors,
+                    # but LEAVE numeric data as float/int so histograms work.
+                    display_df = df.copy()
+                    for col in display_df.select_dtypes(include=['object', 'datetime']).columns:
+                        display_df[col] = display_df[col].astype(str)
+                    
+                    st.dataframe(display_df, use_container_width=True)
 
-                # Convert to CSV in memory
+                # Convert to CSV in memory (using original df so data types remain intact)
                 csv_buffer = io.StringIO()
                 df.to_csv(csv_buffer, index=False)
                 csv_bytes = csv_buffer.getvalue().encode()
