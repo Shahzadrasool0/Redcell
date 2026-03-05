@@ -1,0 +1,7 @@
+streamlit
+pandas
+torch
+matplotlib
+python-docx
+docling
+openpyxl
