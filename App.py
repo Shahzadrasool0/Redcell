@@ -80,6 +80,28 @@ st.markdown(
         width: 120px;
     }}
     
+    /* Responsive styling for mobile */
+    @media (max-width: 768px) {
+        .header-container {
+            flex-direction: column;
+            text-align: center;
+        }
+        .header-container > div {
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        .logo {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+        .right-logos {
+            justify-content: center;
+        }
+        .footer-container {
+            flex-direction: column;
+            gap: 20px;
+        }
+    }
     </style>
 
     <div class="header-container">
