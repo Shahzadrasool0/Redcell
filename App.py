@@ -149,11 +149,27 @@ with tab1:
 
     # Process file on button click
     if uploaded_file is not None:
-        if st.button("Convert to CSV", type="primary"):
+        button_col1, button_col2 = st.columns([1, 1])
+        with button_col1:
+            convert_clicked = st.button("Convert to CSV", type="primary", use_container_width=True)
+        with button_col2:
+            drop_nulls_clicked = st.button("🗑️ Remove Null Values & Convert", use_container_width=True)
+
+        if convert_clicked or drop_nulls_clicked:
             try:
                 # Read Excel file
                 df = pd.read_excel(uploaded_file)
-                st.success("✅ File converted successfully!")
+                
+                # Apply drop null logic if that specific button was clicked
+                if drop_nulls_clicked:
+                    original_rows = len(df)
+                    # We drop rows where EVERY column is NaN (completely empty rows)
+                    # Alternatively, use dropna() to drop any row with any missing value
+                    df.dropna(how='all', inplace=True) 
+                    rows_dropped = original_rows - len(df)
+                    st.success(f"✅ Removed {rows_dropped} empty rows and converted successfully!")
+                else:
+                    st.success("✅ File converted successfully!")
                 
                 # Use an expander to optionally hide the large dataframe
                 with st.expander("Preview Data", expanded=True):
