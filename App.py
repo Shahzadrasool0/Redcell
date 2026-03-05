@@ -163,11 +163,10 @@ with tab1:
                 # Apply drop null logic if that specific button was clicked
                 if drop_nulls_clicked:
                     original_rows = len(df)
-                    # We drop rows where EVERY column is NaN (completely empty rows)
-                    # Alternatively, use dropna() to drop any row with any missing value
-                    df.dropna(how='all', inplace=True) 
+                    # We drop rows where ANY column is NaN
+                    df.dropna(how='any', inplace=True) 
                     rows_dropped = original_rows - len(df)
-                    st.success(f"✅ Removed {rows_dropped} empty rows and converted successfully!")
+                    st.success(f"✅ Removed {rows_dropped} rows containing missing values and converted successfully!")
                 else:
                     st.success("✅ File converted successfully!")
                 
